@@ -538,8 +538,8 @@ public class ApiConfigTool {
 		}
 
 		if (result != null) {
-			ObjectMapper mapperw = new ObjectMapper();
-			System.err.println("applications: " + mapperw.writerWithDefaultPrettyPrinter().writeValueAsString(result));
+//			ObjectMapper mapperw = new ObjectMapper();
+//			System.err.println("applications: " + mapperw.writerWithDefaultPrettyPrinter().writeValueAsString(result));
 			return result;
 		} else {
 			System.err.println("Failed to find list of applications");
