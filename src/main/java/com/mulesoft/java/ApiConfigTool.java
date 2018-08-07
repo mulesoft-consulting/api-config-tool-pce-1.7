@@ -273,7 +273,7 @@ public class ApiConfigTool {
 */
 		
 		/*
-		 * Create the API in Exchange
+		 * Create the API in API Manager
 		 */
 		String apiMgmtAssetId = null;
 		String apiMgmtAssetVersionId = null;
@@ -346,8 +346,6 @@ public class ApiConfigTool {
 		 */
 		addApiPolicies(client, authorizationHdr, businessGroupId, apiMgmtAssetId, apiMgmtAssetVersionId, policies);
 		getApiPolicies(client, authorizationHdr, businessGroupId, apiMgmtAssetId, apiMgmtAssetVersionId);
-		
-		if (true) System.exit(1);
 		
 		/*
 		 * Add application contracts

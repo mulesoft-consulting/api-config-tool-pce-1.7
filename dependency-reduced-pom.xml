@@ -4,7 +4,7 @@
   <groupId>com.mulesoft.java</groupId>
   <artifactId>mule-api-config-pce17</artifactId>
   <name>Mule API Config Tool</name>
-  <version>1.0.0</version>
+  <version>2.0.0</version>
   <description>Config a Mule API into Anypoint Platform</description>
   <build>
     <finalName>ApiConfigTool</finalName>
