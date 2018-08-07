@@ -45,7 +45,7 @@ public class ApiConfigTool {
 	public static Boolean VALIDATE_AP_SERVER_CERT = false;
 	public static boolean makeApiNameBusinessGroupSensitive = false;
 	public static String RESOURCES_DIR = "src/main/resources";
-	public static String API_VERSION_HEADER_MSG = "ApiConfigTool(v.PCE-1.7) version 1.0";
+	public static String API_VERSION_HEADER_MSG = "ApiConfigTool(v.PCE-1.7) version 2.0.0";
 
 	public static void main(String[] args) {
 
@@ -99,23 +99,28 @@ public class ApiConfigTool {
 			StringBuilder filename = new StringBuilder();
 			filename.append(map.get("envName")).append("-config.properties");
 			File file = new File(resourcesDir, filename.toString());
-			input = FileUtils.openInputStream(file);
+			if (file.exists()) {
+				input = FileUtils.openInputStream(file);
 
-			// load a properties file
-			configProperties.load(input);
-/*
- 			System.out.println(configProperties.getProperty("api.name"));
-			System.out.println(configProperties.getProperty("api.version"));
-			System.out.println(configProperties.getProperty("api.id"));
- */
+				// load a properties file
+				configProperties.load(input);
+				/*
+				 * System.out.println(configProperties.getProperty("api.name"));
+				 * System.out.println(configProperties.getProperty("api.version"));
+				 * System.out.println(configProperties.getProperty("api.id"));
+				 */
 
-			LinkedHashMap<String,String>generatedProperties = (LinkedHashMap<String, String>) map.get("properties");
-			configProperties.put("api.name", generatedProperties.get("auto-discovery-apiName"));
-			configProperties.put("api.version", generatedProperties.get("auto-discovery-apiVersion"));
-			configProperties.put("api.id", generatedProperties.get("auto-discovery-apiId"));
-			
-			output = FileUtils.openOutputStream(file);
-			configProperties.store(output, null);
+				LinkedHashMap<String, String> generatedProperties = (LinkedHashMap<String, String>) map
+						.get("properties");
+				configProperties.put("api.name", generatedProperties.get("auto-discovery-apiName"));
+				configProperties.put("api.version", generatedProperties.get("auto-discovery-apiVersion"));
+				configProperties.put("api.id", generatedProperties.get("auto-discovery-apiId"));
+
+				output = FileUtils.openOutputStream(file);
+				configProperties.store(output, null);
+			} else {
+				System.err.println("***WARN*** " + file.getAbsolutePath() + " does not exist.");
+			}
 		} catch (IOException ex) {
 			IOUtils.closeQuietly(input);
 			IOUtils.closeQuietly(output);
@@ -350,15 +355,16 @@ public class ApiConfigTool {
 		/*
 		 * Add application contracts
 		 */
+		applications = getApplicationList(client, authorizationHdr, businessGroupId);
 		createApplicationContracts(client, authorizationHdr, businessGroupId,
-				businessGroupName, businessGroupId, environmentName, environmentId,
-				apiMgmtAssetId, apiMgmtAssetVersionId, autoDiscoveryApiId, apiVersion, clients,
+				businessGroupName, businessGroupId, Integer.parseInt(apiMgmtAssetVersionId), clients,
 				applications);
 		
 		// save configuration
 		ArrayList<Object> empty = new ArrayList<Object>();
 		returnPayload.put("imports", empty.toArray());
-		returnPayloadProperties.put("secure.properties", "generated_client_secret,cps_client_secret,auto_api_registration_client_secret");
+		returnPayloadProperties.put("secure.properties",
+				"generated_client_secret,cps_client_secret,auto_api_registration_client_secret");
 		returnPayloadProperties.put("apiName", apiName);
 		returnPayloadProperties.put("apiManagerAssetId", apiManagerAssetId);
 		returnPayloadProperties.put("apiVersion", apiVersion);
@@ -510,8 +516,10 @@ public class ApiConfigTool {
 	@SuppressWarnings("unchecked")
 	private static ArrayList<LinkedHashMap<String, Object>> getApplicationList(Client restClient, String authorizationHdr,
 			String organizationId) throws JsonProcessingException {
-		WebTarget target = restClient.target(HTTPS_ANYPOINT_MULESOFT_COM).path("exchange/api/v1/organizations")
-				.path(organizationId).path("applications");
+		
+		WebTarget target = restClient.target(HTTPS_ANYPOINT_MULESOFT_COM).path("apiplatform/repository/v2/organizations")
+			.path(organizationId).path("applications").queryParam("limit", 250)
+			.queryParam("offset", 0);
 
 		Response response = target.request().header("Authorization", authorizationHdr)
 				.accept(MediaType.APPLICATION_JSON).get();
@@ -522,15 +530,16 @@ public class ApiConfigTool {
 			statuscode = response.getStatus();
 		}
 		if (response != null && response.getStatus() == 200) {
-			result = (ArrayList<LinkedHashMap<String, Object>>) response.readEntity(ArrayList.class);
+			LinkedHashMap<String, Object>tresult = (LinkedHashMap<String, Object>) response.readEntity(LinkedHashMap.class);
+			result = (ArrayList<LinkedHashMap<String, Object>>) tresult.get("applications");
 		} else {
 			System.err.println("Failed to get application list (" + statuscode + ")");
 			System.exit(statuscode);
 		}
 
 		if (result != null) {
-//			ObjectMapper mapperw = new ObjectMapper();
-//			System.err.println("applications: " + mapperw.writerWithDefaultPrettyPrinter().writeValueAsString(result));
+			ObjectMapper mapperw = new ObjectMapper();
+			System.err.println("applications: " + mapperw.writerWithDefaultPrettyPrinter().writeValueAsString(result));
 			return result;
 		} else {
 			System.err.println("Failed to find list of applications");
@@ -601,8 +610,8 @@ public class ApiConfigTool {
 	}
 
 	private static void createApplicationContracts(Client restClient, String authorizationHdr, String organizationId,
-			String businessGroupName, String businessGroupId, String environmentName, String environmentId,
-			String exchangeAssetId, String exchangeAssetVersion, String autoDiscoveryApiId, String apiVersion, String contractsFileName,
+			String businessGroupName, String businessGroupId,
+			int apiVersionId, String contractsFileName,
 			ArrayList<LinkedHashMap<String, Object>> applications) throws JsonProcessingException {
 
 		ArrayList<LinkedHashMap<String, Object>> contracts;
@@ -630,7 +639,7 @@ public class ApiConfigTool {
 			for (LinkedHashMap<String, Object> i : contracts) {
 				int applicationId = 0;
 				StringBuilder applicationName = new StringBuilder();
-				applicationName.append(i.get("applicationName")).append("_").append(businessGroupName).append("_").append(environmentName);
+				applicationName.append(i.get("applicationName"));
 //				System.err.println(applicationName.toString());
 				for (LinkedHashMap<String, Object> e:applications) {
 					if (e.get("name").equals(applicationName.toString())) {
@@ -640,7 +649,7 @@ public class ApiConfigTool {
 				}
 				if (applicationId != 0) {
 					createApplicationContract(restClient, authorizationHdr, organizationId, applicationId,
-							businessGroupId, environmentId, exchangeAssetId, exchangeAssetVersion, autoDiscoveryApiId, apiVersion);
+							businessGroupId, apiVersionId);
 				} else {
 					System.err.println("Could not find application in list: " + applicationName);
 				}
@@ -657,19 +666,15 @@ public class ApiConfigTool {
 
 	private static void createApplicationContract(Client restClient, String authorizationHdr,
 			String organizationId, int applicationId, String businessGroupId,
-			String environmentId, String exchangeAssetId, String exchangeAssetVersion, String autoDiscoveryApiId, String apiVersion) throws JsonProcessingException {
+			int apiVersionId) throws JsonProcessingException {
 		LinkedHashMap<String, Object> contractValues = new LinkedHashMap<String, Object>();
-		contractValues.put("apiId", autoDiscoveryApiId);
-		contractValues.put("environmentId", environmentId);
-		contractValues.put("acceptedTerms", true);
-		contractValues.put("organizationId", businessGroupId);
-		contractValues.put("groupId", businessGroupId);
-		contractValues.put("assetId", exchangeAssetId);
-		contractValues.put("version", exchangeAssetVersion);
-		contractValues.put("productAPIVersion", apiVersion);
+		contractValues.put("apiVersionId", apiVersionId);
+		contractValues.put("applicationId", applicationId);
+		contractValues.put("partyId", "");
+		contractValues.put("partyName", "");
 		String payload = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(contractValues);
-		
-		WebTarget target = restClient.target(HTTPS_ANYPOINT_MULESOFT_COM).path("exchange/api/v1/organizations")
+
+		WebTarget target = restClient.target(HTTPS_ANYPOINT_MULESOFT_COM).path("apiplatform/repository/v2/organizations")
 				.path(organizationId).path("applications").path(Integer.toString(applicationId)).path("contracts");
 
 		Response response = target.request().header("Authorization", authorizationHdr)
