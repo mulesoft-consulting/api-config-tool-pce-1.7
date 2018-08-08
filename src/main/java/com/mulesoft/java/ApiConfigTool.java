@@ -85,16 +85,15 @@ public class ApiConfigTool {
 		FileOutputStream output = null;
 		File resourcesDir = new File(RESOURCES_DIR);
 
-/*
-		ObjectMapper mapperw = new ObjectMapper();
-		String result;
-		try {
-			result = mapperw.writerWithDefaultPrettyPrinter().writeValueAsString(map);
-			System.out.println(result);
-		} catch (JsonProcessingException e) {
-			e.printStackTrace();
-		}		
-*/
+//		ObjectMapper mapperw = new ObjectMapper();
+//		String result;
+//		try {
+//			result = mapperw.writerWithDefaultPrettyPrinter().writeValueAsString(map);
+//			System.out.println(result);
+//		} catch (JsonProcessingException e) {
+//			e.printStackTrace();
+//		}		
+
 		try {
 			StringBuilder filename = new StringBuilder();
 			filename.append(map.get("envName")).append("-config.properties");
@@ -104,17 +103,12 @@ public class ApiConfigTool {
 
 				// load a properties file
 				configProperties.load(input);
-				/*
-				 * System.out.println(configProperties.getProperty("api.name"));
-				 * System.out.println(configProperties.getProperty("api.version"));
-				 * System.out.println(configProperties.getProperty("api.id"));
-				 */
 
 				LinkedHashMap<String, String> generatedProperties = (LinkedHashMap<String, String>) map
 						.get("properties");
-				configProperties.put("api.name", generatedProperties.get("auto-discovery-apiName"));
-				configProperties.put("api.version", generatedProperties.get("auto-discovery-apiVersion"));
-				configProperties.put("api.id", generatedProperties.get("auto-discovery-apiId"));
+
+				configProperties.put("api.name", generatedProperties.get("apiName"));
+				configProperties.put("api.version", generatedProperties.get("apiVersion"));
 
 				output = FileUtils.openOutputStream(file);
 				configProperties.store(output, null);
@@ -374,9 +368,9 @@ public class ApiConfigTool {
 		returnPayloadProperties.put("exchangeAssetVersionGroup", (String) apiAsset.get("versionGroup"));
 		returnPayloadProperties.put("exchangeAssetGroupId", (String) apiAsset.get("groupId"));
 		returnPayloadProperties.put("exchangeAssetOrganizationId", (String) apiAsset.get("groupId"));
-		returnPayloadProperties.put("auto-discovery-apiId", autoDiscoveryApiId);
-		returnPayloadProperties.put("auto-discovery-apiName", autoDiscoveryApiName);
-		returnPayloadProperties.put("auto-discovery-apiVersion", autoDiscoveryApiVersion);
+		returnPayloadProperties.put("auto-discovery-apiId", null);
+		returnPayloadProperties.put("auto-discovery-apiName", apiName);
+		returnPayloadProperties.put("auto-discovery-apiVersion", apiVersion);
 		/*
 		returnPayloadProperties.put("generated_client_name", generated_client_name);
 		returnPayloadProperties.put("generated_client_id", generated_client_id);
